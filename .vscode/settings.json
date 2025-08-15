@@ -1,0 +1,38 @@
+// https://medium.com/@pomis172/vscode-customizations-for-flutter-developers-055281264481
+{
+  // Dart UI Guides.
+  "dart.previewFlutterUiGuides": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "always",
+    "quickfix.add.required": "always",
+    "quickfix.create.constructorForFinalFields": "always",
+  },
+  "editor.formatOnSave": true,
+  "explorer.fileNesting.enabled": true,
+  "editor.stickyScroll.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "pubspec.yaml": ".flutter-plugins, .packages, .dart_tool, .flutter-plugins-dependencies, .metadata, .packages, pubspec.lock, all_lint_rules.yaml, analysis_options.yaml, build.yaml, pubspec_overrides.yaml",
+    "analysis_options.yaml": " all_lint_rules.yaml",
+    ".gitignore": ".gitattributes, .gitmodules, .gitmessage, .mailmap, .git-blame*",
+    "readme.*": "authors, backers.md, changelog*, citation*, code_of_conduct.md, codeowners, contributing.md, contributors, copying, credits, governance.md, history.md, license*, maintainers, readme*, security.md, sponsors.md",
+    "*.dart": "$(capture).g.dart, $(capture).freezed.dart, $(capture).gr.dart",
+    "mason.yaml": "mason-lock.json",
+    "goglobal.sh": "goglobal.json",
+    "make_tr.sh": "make_built.sh",
+  },
+  // 파일 숨기기.
+  "files.exclude": {
+    "**/*.freezed.dart": true,
+    "**/*.g.dart": true,
+    "**/.git": true,
+    "**/build": true,
+    "**/.dart_tool": true,
+    "**/.goglobal": true,
+    "**/.cursor": true,
+    "**/.idea": true,
+  },
+  // Toolbar location
+  "window.commandCenter": true,
+  "debug.toolBarLocation": "commandCenter",
+}
