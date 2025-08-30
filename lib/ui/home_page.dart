@@ -35,17 +35,19 @@ class _HomeScreenState extends State<HomeScreen> {
       (element) => element.inout == 1,
     );
 
-    return Column(
+    return Stack(
       children: [
-        Expanded(
-          child: ListView(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            children: [
-              _CheckButton(
-                isDiable: firstRecord != null && lastRecord != null,
-                title: getTitle(firstRecord, lastRecord),
-                onTap: () async => onTap(firstRecord, lastRecord),
-              ),
+        Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                children: [
+                  _CheckButton(
+                    isDiable: (firstRecord != null && lastRecord != null) || state.isLoading,
+                    title: getTitle(firstRecord, lastRecord),
+                    onTap: () async => onTap(firstRecord, lastRecord),
+                  ),
               const SizedBox(height: 30),
               CustomText(
                 "Today",
@@ -68,9 +70,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 if (todayRecords.length > 1) const SizedBox(height: 20),
               ],
-            ],
-          ),
+                ],
+              ),
+            ),
+          ],
         ),
+        if (state.isLoading)
+          Container(
+            color: Colors.black26,
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
       ],
     );
   }
@@ -84,18 +95,33 @@ class _HomeScreenState extends State<HomeScreen> {
     return "완료";
   }
 
-  void onTap(DataModel? checkin, DataModel? checkout) {
+  void onTap(DataModel? checkin, DataModel? checkout) async {
     if (checkin != null && checkout != null) return;
 
-    final now = DateTime.now();
+    final state = context.readAppState;
+    bool success;
 
     if (checkin == null) {
-      context.readAppState.addRecord(
-        'INSERT INTO PEEP(inout, dateTime) VALUES(0, "${now.toIso8601String()}")',
-      );
+      success = await state.addCheckIn();
     } else {
-      context.readAppState.addRecord(
-        'INSERT INTO PEEP(inout, dateTime) VALUES(1, "${now.toIso8601String()}")',
+      success = await state.addCheckOut();
+    }
+
+    if (!mounted) return;
+
+    if (!success && state.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(state.errorMessage!),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } else if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(checkin == null ? '체크인 완료' : '체크아웃 완료'),
+          backgroundColor: Colors.green,
+        ),
       );
     }
   }
