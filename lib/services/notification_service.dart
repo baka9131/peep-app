@@ -57,8 +57,9 @@ class NotificationService {
       // Android 13+ 알림 권한 요청
       final androidPlugin = _notifications
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+
       // Android 13 이상에서는 POST_NOTIFICATIONS 권한 요청
       if (androidPlugin != null) {
         final granted = await androidPlugin.requestNotificationsPermission();
@@ -68,7 +69,7 @@ class NotificationService {
         }
         return granted ?? false;
       }
-      
+
       // 폴백: permission_handler 사용
       final status = await Permission.notification.request();
       return status.isGranted;
@@ -268,5 +269,59 @@ class NotificationService {
       body: '오늘도 수고하셨습니다! 👏',
       payload: 'checkout_success',
     );
+  }
+
+  Future<void> scheduleCheckOutReminderForToday(TimeOfDay time) async {
+    if (!_isInitialized) await initialize();
+
+    final now = DateTime.now();
+    final scheduledTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+
+    // 오늘 지정된 시간이 이미 지났으면 알림을 스케줄하지 않음
+    if (scheduledTime.isBefore(now)) {
+      return;
+    }
+
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'checkout_reminder_today',
+          '체크아웃 알림',
+          channelDescription: '오늘 체크아웃 시간 알림',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@drawable/ic_notification',
+        );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const NotificationDetails details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    // 체크아웃 알림 ID를 다르게 사용 (1003)하여 일반 체크아웃 알림과 구분
+    await _notifications.zonedSchedule(
+      1003, // 오늘만의 체크아웃 알림 ID
+      '체크아웃 시간입니다 🏃‍♂️',
+      '오늘도 수고하셨습니다! 체크아웃을 해주세요.',
+      tz.TZDateTime.from(scheduledTime, tz.local),
+      details,
+      payload: 'checkout_reminder_today',
+      androidScheduleMode: AndroidScheduleMode.exact,
+    );
+  }
+
+  Future<void> cancelCheckOutReminderForToday() async {
+    await _notifications.cancel(1003);
   }
 }

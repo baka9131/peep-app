@@ -49,7 +49,7 @@ class PeepRepository {
       print('체크인 없이 체크아웃할 수 없습니다');
       return false;
     }
-    
+
     // 오늘 이미 체크아웃했는지 확인
     final hasCheckedOutToday = await _hasRecordToday(RecordType.checkOut);
     if (hasCheckedOutToday) {
@@ -101,10 +101,7 @@ class PeepRepository {
       final records = await database.query(
         'PEEP',
         where: 'dateTime >= ? AND dateTime < ?',
-        whereArgs: [
-          todayStart.toIso8601String(),
-          todayEnd.toIso8601String(),
-        ],
+        whereArgs: [todayStart.toIso8601String(), todayEnd.toIso8601String()],
       );
 
       bool hasCheckIn = false;
@@ -119,16 +116,10 @@ class PeepRepository {
         }
       }
 
-      return {
-        RecordType.checkIn: hasCheckIn,
-        RecordType.checkOut: hasCheckOut,
-      };
+      return {RecordType.checkIn: hasCheckIn, RecordType.checkOut: hasCheckOut};
     } catch (e) {
       print('Error getting today record status: $e');
-      return {
-        RecordType.checkIn: false,
-        RecordType.checkOut: false,
-      };
+      return {RecordType.checkIn: false, RecordType.checkOut: false};
     }
   }
 

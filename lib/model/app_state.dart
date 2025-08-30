@@ -2,6 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:peep/model/data_model.dart';
 import 'package:peep/repository/peep_repository.dart';
+import 'package:peep/services/notification_service.dart';
+import 'package:peep/services/settings_service.dart';
 
 class AppState with ChangeNotifier {
   static final AppState _instance = AppState._();
@@ -9,6 +11,8 @@ class AppState with ChangeNotifier {
   factory AppState() => _instance;
 
   final PeepRepository _repository = PeepRepository();
+  final NotificationService _notificationService = NotificationService();
+  final SettingsService _settingsService = SettingsService();
 
   Future<void> initialize() async {
     await loadData();
@@ -30,7 +34,6 @@ class AppState with ChangeNotifier {
     currentTabIndex = index;
     notifyListeners();
   }
-
 
   Future<void> loadData() async {
     try {
@@ -64,6 +67,21 @@ class AppState with ChangeNotifier {
       final success = await _repository.addCheckIn();
       if (success) {
         await loadData();
+
+        // 체크인 성공 시 오늘의 체크아웃 알림 스케줄
+        try {
+          final checkOutTime = await _settingsService.getCheckOutTime();
+          final notificationEnabled = await _settingsService
+              .getNotificationEnabled();
+
+          if (notificationEnabled) {
+            await _notificationService.scheduleCheckOutReminderForToday(
+              checkOutTime,
+            );
+          }
+        } catch (e) {
+          debugPrint('체크아웃 알림 스케줄 실패: $e');
+        }
       } else {
         // Repository에서 이미 체크했지만 추가 확인
         errorMessage = '오늘 이미 체크인했습니다';
@@ -86,13 +104,13 @@ class AppState with ChangeNotifier {
 
       // 먼저 오늘 체크인/체크아웃 상태 확인
       final todayStatus = await _repository.getTodayRecordStatus();
-      
+
       // 체크인 없이 체크아웃 시도
       if (!(todayStatus[RecordType.checkIn] ?? false)) {
         errorMessage = '먼저 체크인을 해주세요';
         return false;
       }
-      
+
       // 이미 체크아웃한 경우
       if (todayStatus[RecordType.checkOut] ?? false) {
         errorMessage = '오늘 이미 체크아웃했습니다';

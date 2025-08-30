@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:peep/common/widgets/text_widgets.dart';
 import 'package:peep/extension/extensions.dart';
 import 'package:peep/services/notification_service.dart';
+import 'package:peep/services/settings_service.dart';
 import 'package:peep/ui/core/themes/app_styles.dart';
 import 'package:peep/ui/core/themes/text_style.dart';
 
@@ -22,12 +23,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
   PackageInfo? _packageInfo;
   final NotificationService _notificationService = NotificationService();
+  final SettingsService _settingsService = SettingsService();
 
   @override
   void initState() {
     super.initState();
     _loadAppInfo();
-    _checkNotificationStatus();
+    _loadSettings();
   }
 
   @override
@@ -45,12 +47,22 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _checkNotificationStatus() async {
-    final isEnabled = await _notificationService.areNotificationsEnabled();
-    if (mounted) {
-      setState(() {
-        _notificationEnabled = isEnabled;
-      });
+  Future<void> _loadSettings() async {
+    try {
+      final notificationEnabled = await _settingsService
+          .getNotificationEnabled();
+      final checkInTime = await _settingsService.getCheckInTime();
+      final checkOutTime = await _settingsService.getCheckOutTime();
+
+      if (mounted) {
+        setState(() {
+          _notificationEnabled = notificationEnabled;
+          _checkInTime = checkInTime;
+          _checkOutTime = checkOutTime;
+        });
+      }
+    } catch (e) {
+      debugPrint('설정 로드 실패: $e');
     }
   }
 
@@ -176,6 +188,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   setState(() {
                     _notificationEnabled = true;
                   });
+                  await _settingsService.setNotificationEnabled(true);
                   await _scheduleNotifications();
                 }
               } else {
@@ -183,6 +196,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   _notificationEnabled = false;
                 });
+                await _settingsService.setNotificationEnabled(false);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -390,15 +404,33 @@ class _SettingsPageState extends State<SettingsPage> {
         }
       });
 
-      // 알림이 활성화되어 있다면 스케줄 업데이트
-      if (_notificationEnabled) {
-        await _scheduleNotifications();
+      // 설정 저장
+      try {
+        if (isCheckIn) {
+          await _settingsService.setCheckInTime(picked);
+        } else {
+          await _settingsService.setCheckOutTime(picked);
+        }
+
+        // 알림이 활성화되어 있다면 스케줄 업데이트
+        if (_notificationEnabled) {
+          await _scheduleNotifications();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${isCheckIn ? "체크인" : "체크아웃"} 알림 시간이 업데이트되었습니다'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${isCheckIn ? "체크인" : "체크아웃"} 알림 시간이 업데이트되었습니다'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
+              content: Text('시간 설정 저장 실패: $e'),
+              backgroundColor: Colors.red,
             ),
           );
         }
