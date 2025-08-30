@@ -55,6 +55,21 @@ class NotificationService {
   Future<bool> requestPermissions() async {
     if (Platform.isAndroid) {
       // Android 13+ 알림 권한 요청
+      final androidPlugin = _notifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      
+      // Android 13 이상에서는 POST_NOTIFICATIONS 권한 요청
+      if (androidPlugin != null) {
+        final granted = await androidPlugin.requestNotificationsPermission();
+        if (granted ?? false) {
+          // 정확한 알람 권한도 요청 (예약 알림을 위해)
+          await androidPlugin.requestExactAlarmsPermission();
+        }
+        return granted ?? false;
+      }
+      
+      // 폴백: permission_handler 사용
       final status = await Permission.notification.request();
       return status.isGranted;
     } else if (Platform.isIOS) {
@@ -98,6 +113,7 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
           showWhen: true,
+          icon: '@drawable/ic_notification',
         );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -144,7 +160,7 @@ class NotificationService {
           channelDescription: '체크인 시간 알림',
           importance: Importance.high,
           priority: Priority.high,
-          icon: '@drawable/ic_login',
+          icon: '@drawable/ic_notification',
         );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -165,8 +181,7 @@ class NotificationService {
       tz.TZDateTime.from(scheduledTime, tz.local),
       details,
       matchDateTimeComponents: DateTimeComponents.time, // 매일 반복
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
+
       payload: 'checkin_reminder',
       androidScheduleMode: AndroidScheduleMode.exact,
     );
@@ -196,7 +211,7 @@ class NotificationService {
           channelDescription: '체크아웃 시간 알림',
           importance: Importance.high,
           priority: Priority.high,
-          icon: '@drawable/ic_logout',
+          icon: '@drawable/ic_notification',
         );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -217,8 +232,6 @@ class NotificationService {
       tz.TZDateTime.from(scheduledTime, tz.local),
       details,
       matchDateTimeComponents: DateTimeComponents.time, // 매일 반복
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
       payload: 'checkout_reminder',
       androidScheduleMode: AndroidScheduleMode.exact,
     );

@@ -22,9 +22,9 @@ dependencies:
   intl: 0.20.2
   flutter_localization: 0.3.3
   package_info_plus: ^8.1.2
-  flutter_local_notifications: ^18.0.1
+  flutter_local_notifications: ^19.4.1
   permission_handler: ^11.3.1
-  timezone: ^0.9.4
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:
