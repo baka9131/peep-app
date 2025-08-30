@@ -29,7 +29,10 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    DeepLinkConfig().initialize(context);
+    // MaterialApp이 완전히 빌드된 후에 딥링크 초기화
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DeepLinkConfig().initialize(context, navigatorKey: navigatorKey);
+    });
   }
 
   @override

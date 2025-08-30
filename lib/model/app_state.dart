@@ -15,7 +15,6 @@ class AppState with ChangeNotifier {
   }
 
   int currentTabIndex = 0;
-  int? autoCheck;
   List<DataModel> dataList = [];
   Map<DateTime, List<DataModel>> dataMap = {};
   bool isLoading = false;
@@ -32,10 +31,6 @@ class AppState with ChangeNotifier {
     notifyListeners();
   }
 
-  void setAutoCheck(int? value) {
-    autoCheck = value;
-    notifyListeners();
-  }
 
   Future<void> loadData() async {
     try {
@@ -131,7 +126,6 @@ class AppState with ChangeNotifier {
         dataList = [];
         dataMap = {};
         currentTabIndex = 0;
-        autoCheck = null;
         errorMessage = null;
       } else {
         errorMessage = '데이터 초기화 실패';
