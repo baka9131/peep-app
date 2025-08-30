@@ -18,7 +18,7 @@ void main() {
       await db.execute(
         'CREATE TABLE PEEP (id INTEGER PRIMARY KEY, inout INTEGER, dateTime TEXT)',
       );
-      
+
       SqfliteConfig().setTestDatabase(db);
       repository = PeepRepository();
     });
@@ -64,7 +64,7 @@ void main() {
 
       final remainingRecords = await repository.getAllRecords();
       expect(remainingRecords.length, 0);
-        });
+    });
 
     test('updateRecord should modify existing record', () async {
       await repository.addCheckIn();
@@ -82,6 +82,6 @@ void main() {
       final updatedRecords = await repository.getAllRecords();
       expect(updatedRecords.first.inout, 1);
       expect(updatedRecords.first.dateTime.year, 2024);
-        });
+    });
   });
 }

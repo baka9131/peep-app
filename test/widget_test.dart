@@ -27,7 +27,9 @@ void main() {
     expect(find.text('체크인'), findsOneWidget);
   });
 
-  testWidgets('Bottom navigation should have correct items', (WidgetTester tester) async {
+  testWidgets('Bottom navigation should have correct items', (
+    WidgetTester tester,
+  ) async {
     await SqfliteConfig().initialize();
     await AppState().initialize();
 
@@ -44,7 +46,9 @@ void main() {
     expect(find.text('기록'), findsOneWidget);
   });
 
-  testWidgets('Check button should be tappable when enabled', (WidgetTester tester) async {
+  testWidgets('Check button should be tappable when enabled', (
+    WidgetTester tester,
+  ) async {
     await SqfliteConfig().initialize();
     await AppState().initialize();
 
@@ -65,7 +69,9 @@ void main() {
     expect(find.text('체크아웃'), findsOneWidget);
   });
 
-  testWidgets('Navigation between tabs should work', (WidgetTester tester) async {
+  testWidgets('Navigation between tabs should work', (
+    WidgetTester tester,
+  ) async {
     await SqfliteConfig().initialize();
     await AppState().initialize();
 

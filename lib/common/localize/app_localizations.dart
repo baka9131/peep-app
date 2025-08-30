@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 
 class AppLocalizations {
   static Future<AppLocalizations> load(Locale locale) async {
-    final String name = locale.countryCode == null ? locale.languageCode : locale.toString();
+    final String name = locale.countryCode == null
+        ? locale.languageCode
+        : locale.toString();
     final String localeName = Intl.canonicalizedLocale(name);
     Intl.defaultLocale = localeName;
 

@@ -9,7 +9,7 @@ class AppState with ChangeNotifier {
   factory AppState() => _instance;
 
   final PeepRepository _repository = PeepRepository();
-  
+
   Future<void> initialize() async {
     await loadData();
   }
@@ -42,7 +42,7 @@ class AppState with ChangeNotifier {
       isLoading = true;
       errorMessage = null;
       notifyListeners();
-      
+
       dataList = await _repository.getAllRecords();
       dataMap = groupByDate();
     } catch (e) {
@@ -58,7 +58,7 @@ class AppState with ChangeNotifier {
       isLoading = true;
       errorMessage = null;
       notifyListeners();
-      
+
       final success = await _repository.addCheckIn();
       if (success) {
         await loadData();
@@ -80,7 +80,7 @@ class AppState with ChangeNotifier {
       isLoading = true;
       errorMessage = null;
       notifyListeners();
-      
+
       final success = await _repository.addCheckOut();
       if (success) {
         await loadData();
@@ -102,7 +102,7 @@ class AppState with ChangeNotifier {
       isLoading = true;
       errorMessage = null;
       notifyListeners();
-      
+
       final success = await _repository.deleteRecord(id);
       if (success) {
         await loadData();
@@ -116,6 +116,47 @@ class AppState with ChangeNotifier {
     } finally {
       isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> clearAllData() async {
+    try {
+      isLoading = true;
+      errorMessage = null;
+      notifyListeners();
+
+      final success = await _repository.clearAllData();
+      if (success) {
+        // 로컬 데이터 초기화
+        dataList = [];
+        dataMap = {};
+        currentTabIndex = 0;
+        autoCheck = null;
+        errorMessage = null;
+      } else {
+        errorMessage = '데이터 초기화 실패';
+      }
+      return success;
+    } catch (e) {
+      errorMessage = '데이터 초기화 실패: $e';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> getStatistics() async {
+    try {
+      return await _repository.getStatistics();
+    } catch (e) {
+      print('Error getting statistics: $e');
+      return {
+        'totalRecords': 0,
+        'totalDays': 0,
+        'firstRecord': null,
+        'lastRecord': null,
+      };
     }
   }
 }

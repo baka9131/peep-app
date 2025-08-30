@@ -65,10 +65,10 @@ class _MainPageState extends State<MainPage> {
               icon: Icon(Icons.history_outlined),
               label: "기록",
             ),
-            // BottomNavigationBarItem(
-            //   icon: Icon(Icons.settings_outlined),
-            //   label: "설정",
-            // ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              label: "설정",
+            ),
           ],
           onTap: (index) {
             context.readAppState.setCurrentIndex(index);

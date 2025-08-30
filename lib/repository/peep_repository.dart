@@ -48,16 +48,12 @@ class PeepRepository {
       }
 
       final now = DateTime.now();
-      
+
       await database.transaction((txn) async {
-        await txn.insert(
-          'PEEP',
-          {
-            'inout': type.value,
-            'dateTime': now.toIso8601String(),
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        await txn.insert('PEEP', {
+          'inout': type.value,
+          'dateTime': now.toIso8601String(),
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       });
 
       return true;
@@ -96,10 +92,7 @@ class PeepRepository {
 
       final count = await database.update(
         'PEEP',
-        {
-          'inout': type.value,
-          'dateTime': dateTime.toIso8601String(),
-        },
+        {'inout': type.value, 'dateTime': dateTime.toIso8601String()},
         where: 'id = ?',
         whereArgs: [id],
       );
@@ -108,6 +101,66 @@ class PeepRepository {
     } catch (e) {
       print('Error updating record: $e');
       return false;
+    }
+  }
+
+  Future<bool> clearAllData() async {
+    try {
+      final database = _database;
+      if (database == null) {
+        throw Exception('Database not initialized');
+      }
+
+      await database.transaction((txn) async {
+        // PEEP 테이블의 모든 데이터 삭제
+        await txn.delete('PEEP');
+      });
+
+      return true;
+    } catch (e) {
+      print('Error clearing all data: $e');
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> getStatistics() async {
+    try {
+      final database = _database;
+      if (database == null) {
+        throw Exception('Database not initialized');
+      }
+
+      final records = await getAllRecords();
+      final totalRecords = records.length;
+
+      // 날짜별로 그룹화
+      final Map<DateTime, List<DataModel>> groupedRecords = {};
+      for (var record in records) {
+        final date = DateTime(
+          record.dateTime.year,
+          record.dateTime.month,
+          record.dateTime.day,
+        );
+        groupedRecords.putIfAbsent(date, () => []);
+        groupedRecords[date]!.add(record);
+      }
+
+      final totalDays = groupedRecords.keys.length;
+
+      return {
+        'totalRecords': totalRecords,
+        'totalDays': totalDays,
+        'firstRecord': records.isNotEmpty ? records.last : null,
+        'lastRecord': records.isNotEmpty ? records.first : null,
+      };
+    } catch (e) {
+      print('Error getting statistics: $e');
+      return {
+        'totalRecords': 0,
+        'totalDays': 0,
+        'firstRecord': null,
+        'lastRecord': null,
+      };
     }
   }
 }
