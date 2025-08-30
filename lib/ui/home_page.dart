@@ -376,7 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (checkout == null) {
       return "체크아웃";
     }
-    return "완료";
+    return "오늘 완료";
   }
 
   void onTap(DataModel? checkin, DataModel? checkout) async {

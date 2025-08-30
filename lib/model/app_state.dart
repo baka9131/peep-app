@@ -54,11 +54,19 @@ class AppState with ChangeNotifier {
       errorMessage = null;
       notifyListeners();
 
+      // 먼저 오늘 체크인 상태 확인
+      final todayStatus = await _repository.getTodayRecordStatus();
+      if (todayStatus[RecordType.checkIn] ?? false) {
+        errorMessage = '오늘 이미 체크인했습니다';
+        return false;
+      }
+
       final success = await _repository.addCheckIn();
       if (success) {
         await loadData();
       } else {
-        errorMessage = '체크인 실패';
+        // Repository에서 이미 체크했지만 추가 확인
+        errorMessage = '오늘 이미 체크인했습니다';
       }
       return success;
     } catch (e) {
@@ -76,11 +84,32 @@ class AppState with ChangeNotifier {
       errorMessage = null;
       notifyListeners();
 
+      // 먼저 오늘 체크인/체크아웃 상태 확인
+      final todayStatus = await _repository.getTodayRecordStatus();
+      
+      // 체크인 없이 체크아웃 시도
+      if (!(todayStatus[RecordType.checkIn] ?? false)) {
+        errorMessage = '먼저 체크인을 해주세요';
+        return false;
+      }
+      
+      // 이미 체크아웃한 경우
+      if (todayStatus[RecordType.checkOut] ?? false) {
+        errorMessage = '오늘 이미 체크아웃했습니다';
+        return false;
+      }
+
       final success = await _repository.addCheckOut();
       if (success) {
         await loadData();
       } else {
-        errorMessage = '체크아웃 실패';
+        // Repository에서 실패한 경우 적절한 메시지 설정
+        final status = await _repository.getTodayRecordStatus();
+        if (!(status[RecordType.checkIn] ?? false)) {
+          errorMessage = '먼저 체크인을 해주세요';
+        } else {
+          errorMessage = '오늘 이미 체크아웃했습니다';
+        }
       }
       return success;
     } catch (e) {

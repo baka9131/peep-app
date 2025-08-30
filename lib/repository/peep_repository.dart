@@ -33,11 +33,103 @@ class PeepRepository {
   }
 
   Future<bool> addCheckIn() async {
+    // 오늘 이미 체크인했는지 확인
+    final hasCheckedInToday = await _hasRecordToday(RecordType.checkIn);
+    if (hasCheckedInToday) {
+      print('오늘 이미 체크인했습니다');
+      return false;
+    }
     return _addRecord(RecordType.checkIn);
   }
 
   Future<bool> addCheckOut() async {
+    // 오늘 체크인했는지 먼저 확인
+    final hasCheckedInToday = await _hasRecordToday(RecordType.checkIn);
+    if (!hasCheckedInToday) {
+      print('체크인 없이 체크아웃할 수 없습니다');
+      return false;
+    }
+    
+    // 오늘 이미 체크아웃했는지 확인
+    final hasCheckedOutToday = await _hasRecordToday(RecordType.checkOut);
+    if (hasCheckedOutToday) {
+      print('오늘 이미 체크아웃했습니다');
+      return false;
+    }
     return _addRecord(RecordType.checkOut);
+  }
+
+  Future<bool> _hasRecordToday(RecordType type) async {
+    try {
+      final database = _database;
+      if (database == null) {
+        throw Exception('Database not initialized');
+      }
+
+      final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day);
+      final todayEnd = todayStart.add(const Duration(days: 1));
+
+      final records = await database.query(
+        'PEEP',
+        where: 'inout = ? AND dateTime >= ? AND dateTime < ?',
+        whereArgs: [
+          type.value,
+          todayStart.toIso8601String(),
+          todayEnd.toIso8601String(),
+        ],
+      );
+
+      return records.isNotEmpty;
+    } catch (e) {
+      print('Error checking today record: $e');
+      return false;
+    }
+  }
+
+  Future<Map<RecordType, bool>> getTodayRecordStatus() async {
+    try {
+      final database = _database;
+      if (database == null) {
+        throw Exception('Database not initialized');
+      }
+
+      final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day);
+      final todayEnd = todayStart.add(const Duration(days: 1));
+
+      final records = await database.query(
+        'PEEP',
+        where: 'dateTime >= ? AND dateTime < ?',
+        whereArgs: [
+          todayStart.toIso8601String(),
+          todayEnd.toIso8601String(),
+        ],
+      );
+
+      bool hasCheckIn = false;
+      bool hasCheckOut = false;
+
+      for (final record in records) {
+        final inout = record['inout'] as int;
+        if (inout == RecordType.checkIn.value) {
+          hasCheckIn = true;
+        } else if (inout == RecordType.checkOut.value) {
+          hasCheckOut = true;
+        }
+      }
+
+      return {
+        RecordType.checkIn: hasCheckIn,
+        RecordType.checkOut: hasCheckOut,
+      };
+    } catch (e) {
+      print('Error getting today record status: $e');
+      return {
+        RecordType.checkIn: false,
+        RecordType.checkOut: false,
+      };
+    }
   }
 
   Future<bool> _addRecord(RecordType type) async {

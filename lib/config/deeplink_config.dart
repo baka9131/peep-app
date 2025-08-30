@@ -113,6 +113,43 @@ class DeepLinkConfig {
   Future<void> _performDeepLinkCheckOut() async {
     try {
       final state = AppState();
+      
+      // 먼저 오늘 체크인했는지 확인
+      await state.loadData(); // 최신 데이터 로드
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final todayRecords = state.dataMap[today] ?? [];
+      
+      // 오늘 체크인 기록이 있는지 확인
+      final hasCheckInToday = todayRecords.any((record) => record.inout == 0);
+      
+      if (!hasCheckInToday) {
+        // 체크인 없이 체크아웃 시도
+        debugPrint('체크인 없이 체크아웃 시도됨');
+        
+        final context = _navigatorKey?.currentContext;
+        if (context != null && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    '먼저 체크인을 해주세요',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+      
       final success = await state.addCheckOut();
 
       final context = _navigatorKey?.currentContext;
