@@ -7,6 +7,7 @@ import 'package:peep/common/utils.dart';
 import 'package:peep/common/widgets/text_widgets.dart';
 import 'package:peep/extension/extensions.dart';
 import 'package:peep/model/data_model.dart';
+import 'package:peep/services/notification_service.dart';
 import 'package:peep/ui/core/themes/app_styles.dart';
 import 'package:peep/ui/core/themes/text_style.dart';
 
@@ -18,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final NotificationService _notificationService = NotificationService();
   @override
   Widget build(BuildContext context) {
     final state = context.watchAppState;
@@ -408,13 +410,28 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } else if (success) {
       // 성공 시 가벼운 진동 피드백
       HapticFeedback.lightImpact();
       final isCheckIn = checkin == null;
+
+      // 성공 알림 전송
+      try {
+        if (isCheckIn) {
+          await _notificationService.showCheckInSuccessNotification();
+        } else {
+          await _notificationService.showCheckOutSuccessNotification();
+        }
+      } catch (e) {
+        // 알림 전송 실패해도 로그만 남기고 계속 진행
+        debugPrint('알림 전송 실패: $e');
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -433,7 +450,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           backgroundColor: isCheckIn ? Colors.blue : Colors.orange,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           duration: Duration(seconds: 3),
         ),
       );
@@ -461,47 +480,35 @@ class _CheckButton extends StatelessWidget {
     Color textColor;
     IconData buttonIcon;
     List<Color> gradientColors;
-    
+
     if (isDiable) {
       // 완료 상태 (회색)
       buttonColor = Colors.grey[300]!;
       borderColor = Colors.grey[400]!;
       textColor = Colors.grey[600]!;
       buttonIcon = Icons.check_circle;
-      gradientColors = [
-        Colors.grey[300]!,
-        Colors.grey[400]!,
-      ];
+      gradientColors = [Colors.grey[300]!, Colors.grey[400]!];
     } else if (title == "체크인") {
       // 체크인 상태 (파란색)
       buttonColor = kColorBlue;
       borderColor = kColorBlue.withValues(alpha: 0.8);
       textColor = Colors.white;
       buttonIcon = Icons.login;
-      gradientColors = [
-        Color(0xFF4A90E2),
-        Color(0xFF357ABD),
-      ];
+      gradientColors = [Color(0xFF4A90E2), Color(0xFF357ABD)];
     } else if (title == "체크아웃") {
       // 체크아웃 상태 (주황색)
       buttonColor = Colors.orange;
       borderColor = Colors.orange.withValues(alpha: 0.8);
       textColor = Colors.white;
       buttonIcon = Icons.logout;
-      gradientColors = [
-        Color(0xFFFF9800),
-        Color(0xFFF57C00),
-      ];
+      gradientColors = [Color(0xFFFF9800), Color(0xFFF57C00)];
     } else {
       // 기본 상태
       buttonColor = kColorBlue;
       borderColor = kColorBlue;
       textColor = Colors.white;
       buttonIcon = Icons.check_box_outlined;
-      gradientColors = [
-        kColorBlue,
-        kColorBlue.withValues(alpha: 0.8),
-      ];
+      gradientColors = [kColorBlue, kColorBlue.withValues(alpha: 0.8)];
     }
 
     return GestureDetector(
@@ -512,28 +519,30 @@ class _CheckButton extends StatelessWidget {
         child: Container(
           height: 56,
           decoration: BoxDecoration(
-            gradient: isDiable 
-              ? null 
-              : LinearGradient(
-                  colors: gradientColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+            gradient: isDiable
+                ? null
+                : LinearGradient(
+                    colors: gradientColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             color: isDiable ? buttonColor : null,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDiable ? Colors.transparent : borderColor.withValues(alpha: 0.3),
+              color: isDiable
+                  ? Colors.transparent
+                  : borderColor.withValues(alpha: 0.3),
               width: 1.5,
             ),
-            boxShadow: isDiable 
-              ? [] 
-              : [
-                  BoxShadow(
-                    color: buttonColor.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: Offset(0, 6),
-                  ),
-                ],
+            boxShadow: isDiable
+                ? []
+                : [
+                    BoxShadow(
+                      color: buttonColor.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
           ),
           child: Material(
             color: Colors.transparent,
@@ -547,11 +556,7 @@ class _CheckButton extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      buttonIcon,
-                      color: textColor,
-                      size: 24,
-                    ),
+                    Icon(buttonIcon, color: textColor, size: 24),
                     const SizedBox(width: 12),
                     Text(
                       title,

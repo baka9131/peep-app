@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:peep/common/widgets/text_widgets.dart';
 import 'package:peep/extension/extensions.dart';
+import 'package:peep/services/notification_service.dart';
 import 'package:peep/ui/core/themes/app_styles.dart';
 import 'package:peep/ui/core/themes/text_style.dart';
 
@@ -20,11 +21,13 @@ class _SettingsPageState extends State<SettingsPage> {
   final TextEditingController confirmController = TextEditingController();
 
   PackageInfo? _packageInfo;
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
     super.initState();
     _loadAppInfo();
+    _checkNotificationStatus();
   }
 
   @override
@@ -42,6 +45,14 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _checkNotificationStatus() async {
+    final isEnabled = await _notificationService.areNotificationsEnabled();
+    if (mounted) {
+      setState(() {
+        _notificationEnabled = isEnabled;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -158,12 +169,28 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           CupertinoSwitch(
             value: _notificationEnabled,
-            onChanged: (value) {
-              setState(() {
-                _notificationEnabled = value;
-              });
+            onChanged: (value) async {
               if (value) {
-                _requestNotificationPermission();
+                final hasPermission = await _requestNotificationPermission();
+                if (hasPermission) {
+                  setState(() {
+                    _notificationEnabled = true;
+                  });
+                  await _scheduleNotifications();
+                }
+              } else {
+                await _notificationService.cancelAllReminders();
+                setState(() {
+                  _notificationEnabled = false;
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('알림이 비활성화되었습니다'),
+                      backgroundColor: Colors.grey,
+                    ),
+                  );
+                }
               }
             },
           ),
@@ -349,7 +376,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-
   Future<void> _selectTime(bool isCheckIn) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -363,14 +389,75 @@ class _SettingsPageState extends State<SettingsPage> {
           _checkOutTime = picked;
         }
       });
+
+      // 알림이 활성화되어 있다면 스케줄 업데이트
+      if (_notificationEnabled) {
+        await _scheduleNotifications();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${isCheckIn ? "체크인" : "체크아웃"} 알림 시간이 업데이트되었습니다'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
     }
   }
 
-  void _requestNotificationPermission() {
-    // TODO: 실제 알림 권한 요청 구현
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('알림 기능은 추후 업데이트 예정입니다')));
+  Future<bool> _requestNotificationPermission() async {
+    try {
+      await _notificationService.initialize();
+      final hasPermission = await _notificationService.requestPermissions();
+
+      if (hasPermission) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('알림 권한이 허용되었습니다'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        return true;
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('알림 권한이 거부되었습니다. 설정에서 권한을 허용해주세요.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        return false;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('알림 초기화 실패: $e'), backgroundColor: Colors.red),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> _scheduleNotifications() async {
+    try {
+      await _notificationService.cancelAllReminders();
+      await _notificationService.scheduleCheckInReminder(_checkInTime);
+      await _notificationService.scheduleCheckOutReminder(_checkOutTime);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('알림 스케줄 설정 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _handleBackup() {
